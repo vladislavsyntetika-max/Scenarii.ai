@@ -1,38 +1,55 @@
 import { Router, type IRouter } from "express";
-import OpenAI from "openai";
 import { GenerateScriptBody } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error("OPENAI_API_KEY environment variable is required but not set.");
+if (!process.env.YANDEX_FOLDER_ID) {
+  throw new Error("YANDEX_FOLDER_ID environment variable is required but not set.");
+}
+if (!process.env.YANDEX_IAM_TOKEN) {
+  throw new Error("YANDEX_IAM_TOKEN environment variable is required but not set.");
 }
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const YANDEX_API_URL = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion";
 
-const SYSTEM_PROMPT = `You are an expert script writer for micro-bloggers and short-form video creators (TikTok, Instagram Reels, YouTube Shorts).
+const SYSTEM_PROMPT = `Ты — профессиональный сценарист для микро-блогеров и создателей короткого видеоконтента (TikTok, Instagram Reels, YouTube Shorts).
 
-Your job: write a punchy, engaging video script based on the niche and video idea provided by the user.
+Твоя задача: написать цепляющий, динамичный сценарий видео на основе ниши и идеи, которые укажет пользователь.
 
-CRITICAL LANGUAGE RULE: Detect the language of the user's input (niche + idea). Respond ENTIRELY in that same language. If the user writes in Russian, respond in Russian. If in English, respond in English. Never mix languages.
+ВАЖНО: Всегда отвечай на русском языке, независимо от языка ввода.
 
-Script structure:
-1. HOOK (0–3 seconds) — A single attention-grabbing sentence that stops the scroll. Maximum 15 words. Make it a question, surprising fact, or bold statement.
-2. BODY (4–45 seconds) — 3 to 4 punchy, specific points or story beats. Each point on a new line. No bullet symbols. Keep each point short and spoken-word-friendly.
-3. CALL TO ACTION — One compelling sentence that drives follows, comments, or saves.
+Структура сценария:
+1. КРЮЧОК (0–3 секунды) — Одна фраза, которая останавливает скролл. Максимум 15 слов. Используй вопрос, неожиданный факт или смелое утверждение.
+2. ТЕЛО (4–45 секунд) — 3–4 конкретных, динамичных тезиса или сюжетных хода. Каждый тезис с новой строки. Без маркеров. Каждый тезис короткий и звучит естественно в речи.
+3. ПРИЗЫВ К ДЕЙСТВИЮ — Одна убедительная фраза, побуждающая подписаться, прокомментировать или сохранить.
 
-Style rules:
-- Sound natural when spoken aloud — no stiff or corporate language
-- Be specific, not generic
-- Avoid clichés and filler phrases
-- Match the energy level to the niche (e.g. automotive = bold, gardening = warm)
+Правила стиля:
+- Звучи естественно в разговорной речи — никакого канцелярита
+- Будь конкретным, а не общим
+- Избегай клише и слов-паразитов
+- Подбирай энергетику под нишу (например: автомобили — дерзко, садоводство — тепло)
 
-Return ONLY valid JSON — no markdown, no code fences, no extra text:
+Верни ТОЛЬКО валидный JSON — без markdown, без кавычек кода, без лишнего текста:
 {
   "hook": "...",
   "body": "...",
   "cta": "..."
 }`;
+
+interface YandexGPTResponse {
+  result?: {
+    alternatives?: Array<{
+      message?: {
+        text?: string;
+      };
+      status?: string;
+    }>;
+  };
+  error?: {
+    message?: string;
+    code?: number;
+  };
+}
 
 router.post("/generate", async (req, res) => {
   const parseResult = GenerateScriptBody.safeParse(req.body);
@@ -42,29 +59,51 @@ router.post("/generate", async (req, res) => {
   }
 
   const { niche, idea } = parseResult.data;
+  const folderId = process.env.YANDEX_FOLDER_ID!;
+  const iamToken = process.env.YANDEX_IAM_TOKEN!;
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: `Niche: ${niche}\nVideo idea: ${idea}`,
+    const response = await fetch(YANDEX_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${iamToken}`,
+        "x-folder-id": folderId,
+      },
+      body: JSON.stringify({
+        modelUri: `gpt://${folderId}/yandexgpt/latest`,
+        completionOptions: {
+          stream: false,
+          temperature: 0.7,
+          maxTokens: "800",
         },
-      ],
-      max_tokens: 600,
+        messages: [
+          { role: "system", text: SYSTEM_PROMPT },
+          { role: "user", text: `Ниша: ${niche}\nИдея видео: ${idea}` },
+        ],
+      }),
     });
 
-    const raw = completion.choices[0]?.message?.content ?? "{}";
+    const data = (await response.json()) as YandexGPTResponse;
+
+    if (!response.ok) {
+      const errMsg = data.error?.message ?? `YandexGPT API error (HTTP ${response.status})`;
+      req.log.error({ status: response.status, err: data.error }, "YandexGPT API error");
+      res.status(502).json({ error: errMsg });
+      return;
+    }
+
+    const raw = data.result?.alternatives?.[0]?.message?.text ?? "{}";
     let parsed: { hook?: string; body?: string; cta?: string };
 
+    // Strip any accidental markdown code fences
+    const cleaned = raw.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
+
     try {
-      parsed = JSON.parse(raw);
+      parsed = JSON.parse(cleaned);
     } catch {
-      req.log.error({ raw }, "Failed to parse OpenAI JSON response");
-      res.status(500).json({ error: "AI returned an unexpected response. Please try again." });
+      req.log.error({ raw }, "Failed to parse YandexGPT JSON response");
+      res.status(500).json({ error: "AI вернул неожиданный ответ. Попробуйте ещё раз." });
       return;
     }
 
@@ -73,19 +112,15 @@ router.post("/generate", async (req, res) => {
     const cta = parsed.cta?.trim() ?? "";
 
     if (!hook || !body || !cta) {
-      req.log.error({ parsed }, "OpenAI response missing required fields");
-      res.status(500).json({ error: "Incomplete script generated. Please try again." });
+      req.log.error({ parsed }, "YandexGPT response missing required fields");
+      res.status(500).json({ error: "Сценарий сформирован не полностью. Попробуйте ещё раз." });
       return;
     }
 
     res.json({ hook, body, cta });
   } catch (err: unknown) {
-    req.log.error({ err }, "OpenAI API error");
-    const message =
-      err instanceof OpenAI.APIError
-        ? `OpenAI error: ${err.message}`
-        : "Failed to generate script. Please try again.";
-    res.status(500).json({ error: message });
+    req.log.error({ err }, "YandexGPT request failed");
+    res.status(500).json({ error: "Не удалось сгенерировать сценарий. Попробуйте ещё раз." });
   }
 });
 
