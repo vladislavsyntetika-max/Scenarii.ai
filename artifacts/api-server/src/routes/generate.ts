@@ -53,14 +53,14 @@ router.post("/generate", async (req, res) => {
 
   const { niche, idea } = parseResult.data;
   const folderId = process.env.YANDEX_FOLDER_ID!;
-  const iamToken = process.env.YANDEX_IAM_TOKEN!;
+  const apiKey = process.env.YANDEX_API_KEY!;
 
   try {
     const response = await fetch(YANDEX_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${iamToken}`,
+        "Authorization": `Api-Key ${apiKey}`,
         "x-folder-id": folderId,
       },
       body: JSON.stringify({
