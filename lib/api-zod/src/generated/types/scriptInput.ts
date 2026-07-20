@@ -5,9 +5,6 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-export interface HealthStatus {
-  status: string;
-}
 
 export interface ScriptInput {
   /** @minLength 1 */
@@ -15,14 +12,3 @@ export interface ScriptInput {
   /** @minLength 1 */
   idea: string;
 }
-
-export interface ScriptOutput {
-  hook: string;
-  body: string;
-  cta: string;
-}
-
-export interface ErrorResponse {
-  error: string;
-}
-

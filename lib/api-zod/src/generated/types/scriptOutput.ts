@@ -6,7 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export * from './errorResponse';
-export * from './healthStatus';
-export * from './scriptInput';
-export * from './scriptOutput';
+export interface ScriptOutput {
+  hook: string;
+  body: string;
+  cta: string;
+}

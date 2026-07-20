@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: scripts
+    description: Script generation operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /generate:
+    post:
+      operationId: generateScript
+      tags: [scripts]
+      summary: Generate a video script
+      description: Uses AI to generate a Hook/Body/CTA script from a niche and video idea
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScriptInput"
+      responses:
+        "200":
+          description: Generated script
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScriptOutput"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +66,35 @@ components:
           type: string
       required:
         - status
-
+    ScriptInput:
+      type: object
+      properties:
+        niche:
+          type: string
+          minLength: 1
+        idea:
+          type: string
+          minLength: 1
+      required:
+        - niche
+        - idea
+    ScriptOutput:
+      type: object
+      properties:
+        hook:
+          type: string
+        body:
+          type: string
+        cta:
+          type: string
+      required:
+        - hook
+        - body
+        - cta
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error

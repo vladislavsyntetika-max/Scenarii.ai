@@ -1,57 +1,81 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Copy, Check, RotateCcw, PenTool, Type, Loader2 } from 'lucide-react';
+import { Sparkles, Copy, Check, RotateCcw, PenTool, Type, Loader2, AlertCircle } from 'lucide-react';
+
+interface ScriptResult {
+  hook: string;
+  body: string;
+  cta: string;
+}
+
+type Status = 'idle' | 'loading' | 'success' | 'error';
 
 export default function Home() {
   const [niche, setNiche] = useState('');
   const [idea, setIdea] = useState('');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle');
+  const [status, setStatus] = useState<Status>('idle');
+  const [script, setScript] = useState<ScriptResult | null>(null);
+  const [errorMsg, setErrorMsg] = useState('');
   const [copied, setCopied] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
 
   const isFormValid = niche.trim().length > 0 && idea.trim().length > 0;
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!isFormValid) return;
     setStatus('loading');
-    setTimeout(() => {
+    setScript(null);
+    setErrorMsg('');
+
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ niche: niche.trim(), idea: idea.trim() }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error ?? 'Something went wrong. Please try again.');
+      }
+
+      setScript(data as ScriptResult);
       setStatus('success');
       setTimeout(() => {
         resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 100);
-    }, 1500);
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      setStatus('error');
+    }
   };
 
+  const fullScriptText = script
+    ? `🎬 HOOK (0-3 sec)\n"${script.hook}"\n\n📖 BODY (4-45 sec)\n${script.body}\n\n📣 CALL TO ACTION\n"${script.cta}"`
+    : '';
+
   const handleCopy = () => {
-    const script = `🎬 HOOK (0-3 sec)
-"Did you know most people are doing this completely wrong?"
-
-📖 BODY (4-45 sec)
-Here's what the pros don't tell you about ${niche}...
-Start with the basics — break it down simply.
-Then level up with a counter-intuitive trick.
-The secret most beginners miss? Consistency over intensity.
-
-📣 CALL TO ACTION
-"Follow for more ${niche} tips. Drop a comment — what should I cover next?"`;
-    navigator.clipboard.writeText(script);
+    navigator.clipboard.writeText(fullScriptText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleReset = () => {
     setStatus('idle');
+    setScript(null);
     setIdea('');
+    setErrorMsg('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
     <div className="min-h-[100dvh] w-full flex justify-center bg-background text-foreground overflow-x-hidden selection:bg-primary/30 relative z-0">
-      {/* Background glow effect */}
+      {/* Background glow */}
       <div className="fixed inset-0 pointer-events-none z-[-1] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/15 via-background to-background opacity-80" />
-      
+
       <div className="w-full max-w-[480px] p-6 sm:p-8 flex flex-col relative pb-24">
-        
+
         {/* Header */}
         <header className="pt-8 pb-10 flex flex-col items-center text-center">
           <div className="h-14 w-14 rounded-2xl bg-card border border-border/50 text-primary flex items-center justify-center mb-5 shadow-[0_0_30px_hsl(var(--primary)/0.25)] relative">
@@ -77,7 +101,6 @@ The secret most beginners miss? Consistency over intensity.
                 onChange={(e) => setNiche(e.target.value)}
                 placeholder="e.g., DIY, gardening, travel, automotive"
                 className="w-full bg-input/40 border border-border rounded-xl px-4 py-3.5 text-base outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-muted-foreground/50 shadow-inner"
-                data-testid="input-niche"
               />
             </div>
 
@@ -93,7 +116,6 @@ The secret most beginners miss? Consistency over intensity.
                 placeholder="e.g., 3 mistakes beginners make when starting out..."
                 rows={4}
                 className="w-full bg-input/40 border border-border rounded-xl px-4 py-3.5 text-base outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all resize-none placeholder:text-muted-foreground/50 shadow-inner"
-                data-testid="input-idea"
               />
             </div>
           </div>
@@ -102,11 +124,8 @@ The secret most beginners miss? Consistency over intensity.
             onClick={handleGenerate}
             disabled={!isFormValid || status === 'loading'}
             className="group relative w-full rounded-xl bg-primary text-primary-foreground font-bold text-lg py-4.5 shadow-[0_0_30px_hsl(var(--primary)/0.35)] disabled:opacity-50 disabled:shadow-none hover:shadow-[0_0_50px_hsl(var(--primary)/0.5)] transition-all overflow-hidden flex items-center justify-center gap-2.5 disabled:cursor-not-allowed mt-2 active:scale-[0.98]"
-            data-testid="button-generate"
           >
-            {/* Glossy overlay effect */}
             <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-            
             {status === 'loading' ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
@@ -115,9 +134,24 @@ The secret most beginners miss? Consistency over intensity.
             {status === 'loading' ? 'Crafting magic...' : 'Generate Script'}
           </button>
 
-          {/* Result Area */}
+          {/* Error state */}
           <AnimatePresence>
-            {status === 'success' && (
+            {status === 'error' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="flex items-start gap-3 bg-destructive/10 border border-destructive/30 rounded-xl px-4 py-3.5 text-sm text-destructive"
+              >
+                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                <span>{errorMsg}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Result area */}
+          <AnimatePresence>
+            {status === 'success' && script && (
               <motion.div
                 ref={resultRef}
                 initial={{ opacity: 0, y: 20 }}
@@ -128,37 +162,50 @@ The secret most beginners miss? Consistency over intensity.
               >
                 <div className="relative rounded-2xl bg-card border border-border/60 shadow-2xl overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/30 via-primary to-primary/30" />
-                  
+
                   <div className="p-5 sm:p-7 space-y-7">
-                    <div className="space-y-2">
+                    {/* Hook */}
+                    <motion.div
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 }}
+                      className="space-y-2"
+                    >
                       <div className="flex items-center gap-2 text-[11px] font-bold tracking-widest text-primary uppercase">
                         <span className="text-sm">🎬</span> Hook (0-3 sec)
                       </div>
-                      <p className="text-xl font-bold leading-snug">
-                        "Did you know most people are doing this completely wrong?"
-                      </p>
-                    </div>
+                      <p className="text-xl font-bold leading-snug">"{script.hook}"</p>
+                    </motion.div>
 
-                    <div className="space-y-3">
+                    {/* Body */}
+                    <motion.div
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="space-y-3"
+                    >
                       <div className="flex items-center gap-2 text-[11px] font-bold tracking-widest text-primary uppercase">
                         <span className="text-sm">📖</span> Body (4-45 sec)
                       </div>
-                      <div className="text-muted-foreground space-y-3 leading-relaxed text-[15px]">
-                        <p>Here's what the pros don't tell you about <span className="text-foreground font-semibold">{niche}</span>...</p>
-                        <p>Start with the basics — break it down simply.</p>
-                        <p>Then level up with a counter-intuitive trick.</p>
-                        <p>The secret most beginners miss? Consistency over intensity.</p>
+                      <div className="text-muted-foreground space-y-2 leading-relaxed text-[15px]">
+                        {script.body.split('\n').filter(Boolean).map((line, i) => (
+                          <p key={i}>{line}</p>
+                        ))}
                       </div>
-                    </div>
+                    </motion.div>
 
-                    <div className="space-y-2">
+                    {/* CTA */}
+                    <motion.div
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="space-y-2"
+                    >
                       <div className="flex items-center gap-2 text-[11px] font-bold tracking-widest text-primary uppercase">
                         <span className="text-sm">📣</span> Call to action
                       </div>
-                      <p className="font-semibold italic text-foreground/90 text-lg">
-                        "Follow for more {niche} tips. Drop a comment — what should I cover next?"
-                      </p>
-                    </div>
+                      <p className="font-semibold italic text-foreground/90 text-lg">"{script.cta}"</p>
+                    </motion.div>
                   </div>
                 </div>
 
@@ -166,7 +213,6 @@ The secret most beginners miss? Consistency over intensity.
                   <button
                     onClick={handleCopy}
                     className="flex-1 flex items-center justify-center gap-2 bg-card hover:bg-muted/80 border border-border py-3.5 px-4 rounded-xl font-semibold transition-all text-foreground active:scale-[0.98]"
-                    data-testid="button-copy"
                   >
                     {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
                     {copied ? 'Copied!' : 'Copy Script'}
@@ -174,7 +220,6 @@ The secret most beginners miss? Consistency over intensity.
                   <button
                     onClick={handleReset}
                     className="flex-1 flex items-center justify-center gap-2 bg-transparent hover:bg-input/40 py-3.5 px-4 rounded-xl font-semibold transition-all text-muted-foreground hover:text-foreground active:scale-[0.98]"
-                    data-testid="button-reset"
                   >
                     <RotateCcw className="w-4 h-4" />
                     Generate Another
