@@ -3,13 +3,6 @@ import { GenerateScriptBody } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
-if (!process.env.YANDEX_FOLDER_ID) {
-  throw new Error("YANDEX_FOLDER_ID environment variable is required but not set.");
-}
-if (!process.env.YANDEX_IAM_TOKEN) {
-  throw new Error("YANDEX_IAM_TOKEN environment variable is required but not set.");
-}
-
 const YANDEX_API_URL = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion";
 
 const SYSTEM_PROMPT = `Ты — профессиональный сценарист для микро-блогеров и создателей короткого видеоконтента (TikTok, Instagram Reels, YouTube Shorts).
