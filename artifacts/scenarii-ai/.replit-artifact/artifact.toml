@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "Scenarii.ai"
+version = "1.0.0"
+id = "artifacts/scenarii-ai"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22484
+
+[services.development]
+run = "pnpm --filter @workspace/scenarii-ai run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/scenarii-ai", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/scenarii-ai/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22484"
+BASE_PATH = "/"
