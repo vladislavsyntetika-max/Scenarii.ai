@@ -6,8 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface ScriptOutput {
+export interface SavedScript {
+  id: number;
+  niche: string;
+  idea: string;
   hook: string;
   body: string;
   cta: string;
+  createdAt: Date;
 }

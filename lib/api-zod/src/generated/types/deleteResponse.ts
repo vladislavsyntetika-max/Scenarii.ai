@@ -6,8 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface ScriptOutput {
-  hook: string;
-  body: string;
-  cta: string;
+export interface DeleteResponse {
+  success: boolean;
 }

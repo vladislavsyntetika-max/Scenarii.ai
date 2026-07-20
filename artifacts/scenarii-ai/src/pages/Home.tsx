@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Copy, Check, RotateCcw, PenTool, Type, Loader2, AlertCircle } from 'lucide-react';
+import { Sparkles, Copy, Check, RotateCcw, PenTool, Type, Loader2, AlertCircle, BookOpen, Bookmark, BookmarkCheck } from 'lucide-react';
+import { useLocation } from 'wouter';
 
 interface ScriptResult {
   hook: string;
@@ -17,7 +18,10 @@ export default function Home() {
   const [script, setScript] = useState<ScriptResult | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [copied, setCopied] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
+  const [, navigate] = useLocation();
 
   const isFormValid = niche.trim().length > 0 && idea.trim().length > 0;
 
@@ -26,6 +30,7 @@ export default function Home() {
     setStatus('loading');
     setScript(null);
     setErrorMsg('');
+    setSaved(false);
 
     try {
       const res = await fetch('/api/generate', {
@@ -51,6 +56,27 @@ export default function Home() {
     }
   };
 
+  const handleSave = async () => {
+    if (!script || saving || saved) return;
+    setSaving(true);
+    try {
+      const res = await fetch('/api/scripts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          niche: niche.trim(),
+          idea: idea.trim(),
+          hook: script.hook,
+          body: script.body,
+          cta: script.cta,
+        }),
+      });
+      if (res.ok) setSaved(true);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const fullScriptText = script
     ? `🎬 HOOK (0-3 sec)\n"${script.hook}"\n\n📖 BODY (4-45 sec)\n${script.body}\n\n📣 CALL TO ACTION\n"${script.cta}"`
     : '';
@@ -66,6 +92,7 @@ export default function Home() {
     setScript(null);
     setIdea('');
     setErrorMsg('');
+    setSaved(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -74,7 +101,7 @@ export default function Home() {
       {/* Background glow */}
       <div className="fixed inset-0 pointer-events-none z-[-1] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/15 via-background to-background opacity-80" />
 
-      <div className="w-full max-w-[480px] p-6 sm:p-8 flex flex-col relative pb-24">
+      <div className="w-full max-w-[480px] p-6 sm:p-8 flex flex-col relative pb-32">
 
         {/* Header */}
         <header className="pt-8 pb-10 flex flex-col items-center text-center">
@@ -209,27 +236,66 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 mt-3">
+                {/* Action buttons */}
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={handleCopy}
-                    className="flex-1 flex items-center justify-center gap-2 bg-card hover:bg-muted/80 border border-border py-3.5 px-4 rounded-xl font-semibold transition-all text-foreground active:scale-[0.98]"
+                    className="flex items-center justify-center gap-2 bg-card hover:bg-muted/80 border border-border py-3.5 px-4 rounded-xl font-semibold transition-all text-foreground active:scale-[0.98]"
                   >
                     {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                    {copied ? 'Copied!' : 'Copy Script'}
+                    {copied ? 'Copied!' : 'Copy'}
                   </button>
                   <button
-                    onClick={handleReset}
-                    className="flex-1 flex items-center justify-center gap-2 bg-transparent hover:bg-input/40 py-3.5 px-4 rounded-xl font-semibold transition-all text-muted-foreground hover:text-foreground active:scale-[0.98]"
+                    onClick={handleSave}
+                    disabled={saving || saved}
+                    className={`flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-semibold transition-all active:scale-[0.98] border ${
+                      saved
+                        ? 'bg-green-500/10 border-green-500/30 text-green-500'
+                        : 'bg-primary/10 hover:bg-primary/20 border-primary/30 text-primary'
+                    } disabled:cursor-not-allowed`}
                   >
-                    <RotateCcw className="w-4 h-4" />
-                    Generate Another
+                    {saving ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : saved ? (
+                      <BookmarkCheck className="w-4 h-4" />
+                    ) : (
+                      <Bookmark className="w-4 h-4" />
+                    )}
+                    {saved ? 'Saved!' : 'Save'}
                   </button>
                 </div>
+
+                <button
+                  onClick={handleReset}
+                  className="w-full flex items-center justify-center gap-2 bg-transparent hover:bg-input/40 py-3.5 px-4 rounded-xl font-semibold transition-all text-muted-foreground hover:text-foreground active:scale-[0.98]"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Generate Another
+                </button>
               </motion.div>
             )}
           </AnimatePresence>
         </main>
       </div>
+
+      {/* Bottom nav */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 flex justify-center">
+        <div className="w-full max-w-[480px] px-4 pb-5">
+          <div className="bg-card/80 backdrop-blur-xl border border-border/50 rounded-2xl p-1.5 flex gap-1.5 shadow-2xl">
+            <div className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-primary/15 text-primary text-sm font-semibold">
+              <PenTool className="w-4 h-4" />
+              Generator
+            </div>
+            <button
+              onClick={() => navigate('/my-scripts')}
+              className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-all"
+            >
+              <BookOpen className="w-4 h-4" />
+              My Scripts
+            </button>
+          </div>
+        </div>
+      </nav>
     </div>
   );
 }

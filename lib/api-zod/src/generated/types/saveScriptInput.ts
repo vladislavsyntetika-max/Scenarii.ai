@@ -6,9 +6,15 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface ScriptInput {
+export interface SaveScriptInput {
   /** @minLength 1 */
   niche: string;
   /** @minLength 1 */
   idea: string;
+  /** @minLength 1 */
+  hook: string;
+  /** @minLength 1 */
+  body: string;
+  /** @minLength 1 */
+  cta: string;
 }
