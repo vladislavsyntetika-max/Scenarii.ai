@@ -57,6 +57,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /trending:
+    post:
+      operationId: getTrendingIdeas
+      tags: [scripts]
+      summary: Get trending video ideas with a ready script for the best one
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrendingInput"
+      responses:
+        "200":
+          description: Trending ideas and best script
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrendingOutput"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /scripts:
     get:
       operationId: listScripts
@@ -276,6 +306,29 @@ components:
           type: boolean
       required:
         - success
+    TrendingInput:
+      type: object
+      properties:
+        niche:
+          type: string
+          minLength: 1
+      required:
+        - niche
+    TrendingOutput:
+      type: object
+      properties:
+        trending_ideas:
+          type: array
+          items:
+            type: string
+        best_idea_index:
+          type: integer
+        best_script:
+          $ref: "#/components/schemas/RichScriptOutput"
+      required:
+        - trending_ideas
+        - best_idea_index
+        - best_script
     ErrorResponse:
       type: object
       properties:
