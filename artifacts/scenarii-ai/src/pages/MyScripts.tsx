@@ -76,12 +76,12 @@ function ScriptCard({
       transition={{ duration: 0.25 }}
       className="rounded-2xl bg-card border border-border/60 overflow-hidden"
     >
-      {/* Header row */}
-      <button
-        onClick={() => setExpanded(v => !v)}
-        className="w-full text-left p-4 sm:p-5 flex items-start justify-between gap-3 hover:bg-muted/30 transition-colors"
-      >
-        <div className="flex-1 min-w-0">
+      {/* Header row — div so delete button isn't nested inside expand button */}
+      <div className="p-4 sm:p-5 flex items-start justify-between gap-3">
+        <button
+          onClick={() => setExpanded(v => !v)}
+          className="flex-1 min-w-0 text-left"
+        >
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="text-[11px] font-bold tracking-widest text-primary uppercase">
               {script.niche}
@@ -100,7 +100,7 @@ function ScriptCard({
           <p className="text-sm font-semibold leading-snug line-clamp-2 text-foreground/90">
             «{script.hook}»
           </p>
-        </div>
+        </button>
         <div className="flex items-center gap-2 shrink-0 mt-0.5">
           <button
             onClick={handleDelete}
@@ -112,11 +112,17 @@ function ScriptCard({
               ? <Loader2 className="w-4 h-4 animate-spin" />
               : <Trash2 className="w-4 h-4" />}
           </button>
-          {expanded
-            ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
-            : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+          <button
+            onClick={() => setExpanded(v => !v)}
+            className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors"
+            aria-label={expanded ? 'Свернуть' : 'Развернуть'}
+          >
+            {expanded
+              ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+          </button>
         </div>
-      </button>
+      </div>
 
       {/* Expanded body */}
       <AnimatePresence initial={false}>
