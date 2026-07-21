@@ -18,7 +18,7 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
- * Uses AI to generate a Hook/Body/CTA script from a niche and video idea
+ * Uses AI to generate a detailed shot-by-shot script
  * @summary Generate a video script
  */
 
@@ -31,9 +31,21 @@ export const GenerateScriptBody = zod.object({
 })
 
 export const GenerateScriptResponse = zod.object({
-  "hook": zod.string(),
-  "body": zod.string(),
-  "cta": zod.string()
+  "hooks": zod.array(zod.object({
+  "text": zod.string(),
+  "style": zod.string()
+})),
+  "shots": zod.array(zod.object({
+  "id": zod.number(),
+  "section": zod.string(),
+  "timing": zod.string(),
+  "visual": zod.string(),
+  "voiceover": zod.string(),
+  "overlay": zod.string(),
+  "sfx": zod.string()
+})),
+  "music": zod.string(),
+  "totalDuration": zod.string()
 })
 
 
@@ -48,6 +60,7 @@ export const ListScriptsResponseItem = zod.object({
   "hook": zod.string(),
   "body": zod.string(),
   "cta": zod.string(),
+  "rawData": zod.record(zod.string(), zod.unknown()).optional(),
   "createdAt": zod.coerce.date()
 })
 export const ListScriptsResponse = zod.array(ListScriptsResponseItem)
@@ -68,7 +81,8 @@ export const SaveScriptBody = zod.object({
   "idea": zod.string().min(1),
   "hook": zod.string().min(1),
   "body": zod.string().min(1),
-  "cta": zod.string().min(1)
+  "cta": zod.string().min(1),
+  "rawData": zod.record(zod.string(), zod.unknown()).optional()
 })
 
 export const SaveScriptResponse = zod.object({
@@ -78,6 +92,7 @@ export const SaveScriptResponse = zod.object({
   "hook": zod.string(),
   "body": zod.string(),
   "cta": zod.string(),
+  "rawData": zod.record(zod.string(), zod.unknown()).optional(),
   "createdAt": zod.coerce.date()
 })
 

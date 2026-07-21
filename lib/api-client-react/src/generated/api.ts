@@ -23,10 +23,10 @@ import type {
   DeleteResponse,
   ErrorResponse,
   HealthStatus,
+  RichScriptOutput,
   SaveScriptInput,
   SavedScript,
-  ScriptInput,
-  ScriptOutput
+  ScriptInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -143,12 +143,12 @@ export const getGenerateScriptUrl = () => {
 }
 
 /**
- * Uses AI to generate a Hook/Body/CTA script from a niche and video idea
+ * Uses AI to generate a detailed shot-by-shot script
  * @summary Generate a video script
  */
-export const generateScript = async (scriptInput: ScriptInput, options?: RequestInit): Promise<ScriptOutput> => {
+export const generateScript = async (scriptInput: ScriptInput, options?: RequestInit): Promise<RichScriptOutput> => {
 
-  return customFetch<ScriptOutput>(getGenerateScriptUrl(),
+  return customFetch<RichScriptOutput>(getGenerateScriptUrl(),
   {
     ...options,
     method: 'POST',

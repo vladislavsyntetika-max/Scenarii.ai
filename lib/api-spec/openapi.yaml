@@ -31,7 +31,7 @@ paths:
       operationId: generateScript
       tags: [scripts]
       summary: Generate a video script
-      description: Uses AI to generate a Hook/Body/CTA script from a niche and video idea
+      description: Uses AI to generate a detailed shot-by-shot script
       requestBody:
         required: true
         content:
@@ -44,7 +44,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ScriptOutput"
+                $ref: "#/components/schemas/RichScriptOutput"
         "400":
           description: Bad request
           content:
@@ -158,19 +158,61 @@ components:
       required:
         - niche
         - idea
-    ScriptOutput:
+    HookVariant:
       type: object
       properties:
-        hook:
+        text:
           type: string
-        body:
-          type: string
-        cta:
+        style:
           type: string
       required:
-        - hook
-        - body
-        - cta
+        - text
+        - style
+    Shot:
+      type: object
+      properties:
+        id:
+          type: integer
+        section:
+          type: string
+        timing:
+          type: string
+        visual:
+          type: string
+        voiceover:
+          type: string
+        overlay:
+          type: string
+        sfx:
+          type: string
+      required:
+        - id
+        - section
+        - timing
+        - visual
+        - voiceover
+        - overlay
+        - sfx
+    RichScriptOutput:
+      type: object
+      properties:
+        hooks:
+          type: array
+          items:
+            $ref: "#/components/schemas/HookVariant"
+        shots:
+          type: array
+          items:
+            $ref: "#/components/schemas/Shot"
+        music:
+          type: string
+        totalDuration:
+          type: string
+      required:
+        - hooks
+        - shots
+        - music
+        - totalDuration
     SaveScriptInput:
       type: object
       properties:
@@ -189,6 +231,9 @@ components:
         cta:
           type: string
           minLength: 1
+        rawData:
+          type: object
+          additionalProperties: true
       required:
         - niche
         - idea
@@ -210,6 +255,9 @@ components:
           type: string
         cta:
           type: string
+        rawData:
+          type: object
+          additionalProperties: true
         createdAt:
           type: string
           format: date-time

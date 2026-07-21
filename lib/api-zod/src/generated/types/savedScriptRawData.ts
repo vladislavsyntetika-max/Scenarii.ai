@@ -6,8 +6,4 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface ScriptOutput {
-  hook: string;
-  body: string;
-  cta: string;
-}
+export type SavedScriptRawData = { [key: string]: unknown };

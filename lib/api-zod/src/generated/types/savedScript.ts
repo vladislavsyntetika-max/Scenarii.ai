@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { SavedScriptRawData } from './savedScriptRawData';
 
 export interface SavedScript {
   id: number;
@@ -13,5 +14,6 @@ export interface SavedScript {
   hook: string;
   body: string;
   cta: string;
+  rawData?: SavedScriptRawData;
   createdAt: Date;
 }

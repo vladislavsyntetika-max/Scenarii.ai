@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { SaveScriptInputRawData } from './saveScriptInputRawData';
 
 export interface SaveScriptInput {
   /** @minLength 1 */
@@ -17,4 +18,5 @@ export interface SaveScriptInput {
   body: string;
   /** @minLength 1 */
   cta: string;
+  rawData?: SaveScriptInputRawData;
 }

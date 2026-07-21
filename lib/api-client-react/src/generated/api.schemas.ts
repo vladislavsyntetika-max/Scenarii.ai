@@ -16,11 +16,29 @@ export interface ScriptInput {
   idea: string;
 }
 
-export interface ScriptOutput {
-  hook: string;
-  body: string;
-  cta: string;
+export interface HookVariant {
+  text: string;
+  style: string;
 }
+
+export interface Shot {
+  id: number;
+  section: string;
+  timing: string;
+  visual: string;
+  voiceover: string;
+  overlay: string;
+  sfx: string;
+}
+
+export interface RichScriptOutput {
+  hooks: HookVariant[];
+  shots: Shot[];
+  music: string;
+  totalDuration: string;
+}
+
+export type SaveScriptInputRawData = { [key: string]: unknown };
 
 export interface SaveScriptInput {
   /** @minLength 1 */
@@ -33,7 +51,10 @@ export interface SaveScriptInput {
   body: string;
   /** @minLength 1 */
   cta: string;
+  rawData?: SaveScriptInputRawData;
 }
+
+export type SavedScriptRawData = { [key: string]: unknown };
 
 export interface SavedScript {
   id: number;
@@ -42,6 +63,7 @@ export interface SavedScript {
   hook: string;
   body: string;
   cta: string;
+  rawData?: SavedScriptRawData;
   createdAt: string;
 }
 
