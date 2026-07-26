@@ -1,25 +1,38 @@
-import app from "./app";
-import { logger } from "./lib/logger";
+import express, { Request, Response } from 'express';
+import cors from 'cors';
+import pino from 'pino';
+import pinoHttp from 'pino-http';
+import { healthCheck } from './routes/health';
+import { generateScript } from './routes/generate';
+import { getScripts, createScript } from './routes/scripts';
 
-const rawPort = process.env["PORT"];
+const logger = pino({
+  level: process.env.LOG_LEVEL || 'info',
+  transport: {
+    target: 'pino-pretty',
+    options: { colorize: true },
+  },
+});
 
-if (!rawPort) {
-  throw new Error(
-    "PORT environment variable is required but was not provided.",
-  );
-}
+const app = express();
 
-const port = Number(rawPort);
+// Настройка логгера
+app.use(pinoHttp({ logger }));
 
-if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${rawPort}"`);
-}
+// CORS
+app.use(cors());
 
-app.listen(port, (err) => {
-  if (err) {
-    logger.error({ err }, "Error listening on port");
-    process.exit(1);
-  }
+// Маршруты
+app.use('/api/health', healthCheck);
+app.use('/api/generate', generateScript);
+app.use('/api/scripts', getScripts, createScript);
 
-  logger.info({ port }, "Server listening");
+// Обработка несуществующих маршрутов
+app.use('*', (req: Request, res: Response) => {
+  res.status(404).json({ error: 'Endpoint not found' });
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  logger.info(`Server running on port ${PORT}`);
 });
